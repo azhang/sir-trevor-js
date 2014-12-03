@@ -9,6 +9,10 @@ var Blocks = require('./blocks');
 
 var BlockManager = function(options, editorInstance, mediator) {
   this.options = options;
+  this.blockOptions = {
+    convertToMarkdown: options.convertToMarkdown,
+    convertFromMarkdown: options.convertFromMarkdown,
+  };
   this.instance_scope = editorInstance;
   this.mediator = mediator;
 
@@ -41,7 +45,8 @@ Object.assign(BlockManager.prototype, require('./function-bind'), require('./med
     // Run validations
     if (!this.canCreateBlock(type)) { return; }
 
-    var block = new Blocks[type](data, this.instance_scope, this.mediator);
+    var block = new Blocks[type](data, this.instance_scope, this.mediator,
+                                 this.blockOptions);
     this.blocks.push(block);
 
     this._incrementBlockTypeCount(type);

@@ -2,6 +2,9 @@
 
 var _ = require('./lodash');
 
+var Scribe = require('scribe-editor');
+var ScribePluginFormatterPlainTextConvertNewLinesToHTML = require('scribe-plugin-formatter-plain-text-convert-new-lines-to-html');
+
 var config = require('./config');
 var utils = require('./utils');
 var stToHTML = require('./to-html');
@@ -17,7 +20,7 @@ var EventBus = require('./event-bus');
 
 var Spinner = require('spin.js');
 
-var Block = function(data, instance_id, mediator) {
+var Block = function(data, instance_id, mediator, options) {
   SimpleBlock.apply(this, arguments);
 };
 
@@ -183,9 +186,9 @@ Object.assign(Block.prototype, SimpleBlock.fn, require('./block-validations'), {
 
     /* Simple to start. Add conditions later */
     if (this.hasTextBlock()) {
-      var content = this.getTextBlock().html();
-      if (content.length > 0) {
-        data.text = stToMarkdown(content, this.type);
+      data.text = this.getTextBlockHTML();
+      if (data.text.length > 0 && this.options.convertToMarkdown) {
+        data.text = stToMarkdown(data.text, this.type);
       }
     }
 
@@ -288,7 +291,8 @@ Object.assign(Block.prototype, SimpleBlock.fn, require('./block-validations'), {
   },
 
   _handleContentPaste: function(ev) {
-    setTimeout(this.onContentPasted.bind(this, ev, $(ev.currentTarget)), 0);
+    // XXX: remove
+    // setTimeout(this.onContentPasted.bind(this, ev, $(ev.currentTarget)), 0);
   },
 
   _getBlockClass: function() {
@@ -330,10 +334,17 @@ Object.assign(Block.prototype, SimpleBlock.fn, require('./block-validations'), {
 
   _initTextBlocks: function() {
     this.getTextBlock()
-    .bind('paste', this._handleContentPaste)
-    .bind('keyup', this.getSelectionForFormatter)
-    .bind('mouseup', this.getSelectionForFormatter)
-    .bind('DOMNodeInserted', this.clearInsertedStyles);
+        .bind('paste', this._handleContentPaste)
+        .bind('keyup', this.getSelectionForFormatter)
+        .bind('mouseup', this.getSelectionForFormatter)
+        .bind('DOMNodeInserted', this.clearInsertedStyles); 
+
+    if (_.isUndefined(this._scribe)) {
+      this._scribe = new Scribe(this.getTextBlock().get(0), {
+        debug: config.scribeDebug,
+      });
+      this._scribe.use(ScribePluginFormatterPlainTextConvertNewLinesToHTML());
+    }
   },
 
   getSelectionForFormatter: function() {
@@ -363,6 +374,14 @@ Object.assign(Block.prototype, SimpleBlock.fn, require('./block-validations'), {
     }
 
     return this.text_block;
+  },
+
+  getTextBlockHTML: function() {
+    return this._scribe.getHTML();
+  },
+
+  setTextBlockHTML: function(html) {
+    return this._scribe.setContent(html);
   },
 
   isEmpty: function() {

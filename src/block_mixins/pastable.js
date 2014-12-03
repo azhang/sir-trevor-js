@@ -9,6 +9,7 @@ module.exports = {
   mixinName: "Pastable",
 
   initializePastable: function() {
+    return;
     utils.log("Adding pastable to block " + this.blockID);
 
     this.paste_options = Object.assign({}, config.defaults.Block.paste_options, this.paste_options);
